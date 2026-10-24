@@ -1,6 +1,6 @@
 -- Execute ONLY in newly created mdpvilimale Supabase database.
 create table if not exists public.app_users(id uuid primary key references auth.users(id),display_name text not null,role text not null check(role in('admin','staff')),active boolean not null default true);
-create table if not exists public.residents(id uuid primary key default gen_random_uuid(),serial text,name text not null,house text,gender text,national_id text,mobile text,photo_url text);
+create table if not exists public.residents(id uuid primary key default gen_random_uuid(),serial text,name text not null,house text,gender text,age integer check(age is null or age between 0 and 120),national_id text,mobile text,photo_url text);
 create table if not exists public.resident_assignments(resident_id uuid primary key references public.residents(id) on delete cascade,user_id uuid not null references public.app_users(id));
 create table if not exists public.work_results(resident_id uuid not null references public.residents(id) on delete cascade,user_id uuid not null references public.app_users(id),vote_target text not null default 'pending' check(vote_target in('pending','will-vote','not-vote','not-decided')),voted boolean not null default false,remarks text not null default '',updated_at timestamptz default now(),primary key(resident_id,user_id));
 create or replace function public.is_mdp_admin() returns boolean language sql stable security definer set search_path='' as $$select exists(select 1 from public.app_users where id=(select auth.uid()) and active and role='admin')$$;
