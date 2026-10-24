@@ -1,0 +1,26 @@
+-- Execute ONLY in newly created mdpvilimale Supabase database.
+create table if not exists public.app_users(id uuid primary key references auth.users(id),display_name text not null,role text not null check(role in('admin','staff')),active boolean not null default true);
+create table if not exists public.residents(id uuid primary key default gen_random_uuid(),serial text,name text not null,house text,gender text,national_id text,mobile text,photo_url text);
+create table if not exists public.resident_assignments(resident_id uuid primary key references public.residents(id) on delete cascade,user_id uuid not null references public.app_users(id));
+create table if not exists public.work_results(resident_id uuid not null references public.residents(id) on delete cascade,user_id uuid not null references public.app_users(id),vote_target text not null default 'pending' check(vote_target in('pending','will-vote','not-vote','not-decided')),voted boolean not null default false,remarks text not null default '',updated_at timestamptz default now(),primary key(resident_id,user_id));
+create or replace function public.is_mdp_admin() returns boolean language sql stable security definer set search_path='' as $$select exists(select 1 from public.app_users where id=(select auth.uid()) and active and role='admin')$$;
+revoke all on function public.is_mdp_admin() from public,anon;grant execute on function public.is_mdp_admin() to authenticated;
+create or replace function public.is_mdp_staff() returns boolean language sql stable security definer set search_path='' as $$select exists(select 1 from public.app_users where id=(select auth.uid()) and active and role='staff')$$;
+revoke all on function public.is_mdp_staff() from public,anon;grant execute on function public.is_mdp_staff() to authenticated;
+create or replace function public.staff_limit_guard() returns trigger language plpgsql set search_path='' as $$begin if new.role='staff' and new.active and (tg_op='INSERT' or old.active is distinct from new.active or old.role is distinct from new.role) then perform pg_advisory_xact_lock(915224);if(select count(*) from public.app_users where role='staff' and active and id<>new.id)>=3 then raise exception 'Maximum three active staff';end if;end if;return new;end$$;
+drop trigger if exists staff_limit on public.app_users;create trigger staff_limit before insert or update on public.app_users for each row execute function public.staff_limit_guard();
+alter table public.app_users enable row level security;alter table public.residents enable row level security;alter table public.resident_assignments enable row level security;alter table public.work_results enable row level security;
+create policy users_read on public.app_users for select to authenticated using(id=(select auth.uid()) or public.is_mdp_admin());
+create policy users_admin_insert on public.app_users for insert to authenticated with check(public.is_mdp_admin() and role='staff');
+create policy users_admin_update on public.app_users for update to authenticated using(public.is_mdp_admin() and role='staff') with check(public.is_mdp_admin() and role='staff');
+create policy residents_read on public.residents for select to authenticated using(public.is_mdp_admin() or (public.is_mdp_staff() and exists(select 1 from public.resident_assignments a where a.resident_id=residents.id and a.user_id=(select auth.uid()))));
+create policy assignments_read on public.resident_assignments for select to authenticated using(public.is_mdp_admin() or (public.is_mdp_staff() and user_id=(select auth.uid())));
+create policy assignments_insert on public.resident_assignments for insert to authenticated with check(public.is_mdp_admin());
+create policy assignments_update on public.resident_assignments for update to authenticated using(public.is_mdp_admin()) with check(public.is_mdp_admin());
+create policy assignments_delete on public.resident_assignments for delete to authenticated using(public.is_mdp_admin());
+create policy results_read on public.work_results for select to authenticated using(public.is_mdp_admin() or (public.is_mdp_staff() and user_id=(select auth.uid())));
+create policy results_insert on public.work_results for insert to authenticated with check(public.is_mdp_staff() and user_id=(select auth.uid()) and exists(select 1 from public.resident_assignments where resident_id=work_results.resident_id and user_id=(select auth.uid())));
+create policy results_update on public.work_results for update to authenticated using(public.is_mdp_staff() and user_id=(select auth.uid()))) with check(public.is_mdp_staff() and user_id=(select auth.uid()) and exists(select 1 from public.resident_assignments where resident_id=work_results.resident_id and user_id=(select auth.uid())));
+grant usage on schema public to authenticated;grant select on public.app_users,public.residents,public.resident_assignments,public.work_results to authenticated;grant insert,update on public.app_users,public.work_results to authenticated;grant insert,update,delete on public.resident_assignments to authenticated;
+-- After creating admin through Supabase Authentication, run:
+-- insert into public.app_users(id,display_name,role,active) values ('ADMIN_AUTH_UUID','Admin','admin',true);
