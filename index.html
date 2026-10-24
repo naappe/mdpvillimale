@@ -132,10 +132,48 @@ async function verifyAccessOnReturn(){
 }
 window.addEventListener('focus',()=>{void verifyAccessOnReturn()});
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')void verifyAccessOnReturn()});
-async function init(){try{const {data:{user}}=await db.auth.getUser();if(user)await signInUser(user)}catch(e){setMessage(e.message,true)}}
-$('loginForm').onsubmit=async e=>{e.preventDefault();const login=$('email').value.trim().toLowerCase();const authEmail=login.includes('@')?login:login+'@staff.mdpvillimale.example.com';const {data,error}=await db.auth.signInWithPassword({email:authEmail,password:$('password').value});if(error){setMessage(error.message,true);return}await signInUser(data.user)};
+let loginBusy=false;
+function authMessage(message,isError=true){setMessage(message,isError);console.info('[MDP auth]',message)}
+async function init(){
+  try{
+    const {data,error}=await db.auth.getSession();
+    if(error){authMessage('Could not restore saved session: '+error.message);return}
+    if(data?.session?.user)await signInUser(data.session.user);
+  }catch(e){authMessage('Session restore failed: '+(e?.message||e))}
+}
+$('loginForm').onsubmit=async e=>{
+  e.preventDefault();if(loginBusy)return;
+  const login=$('email').value.trim().toLowerCase();
+  const authEmail=login.includes('@')?login:login+'@staff.mdpvillimale.example.com';
+  const button=$('loginForm').querySelector('button');
+  loginBusy=true;button.disabled=true;button.textContent='Signing in…';
+  try{
+    const {data,error}=await db.auth.signInWithPassword({email:authEmail,password:$('password').value});
+    if(error){authMessage('Sign-in failed: '+error.message);return}
+    if(!data?.user){authMessage('Sign-in did not return an account. Please retry.');return}
+    await signInUser(data.user);
+  }catch(e){authMessage('Sign-in error: '+(e?.message||e))}
+  finally{loginBusy=false;button.disabled=false;button.textContent='Sign in'}
+};
 $('logout').onclick=async()=>{await db.auth.signOut();location.reload()};
-async function signInUser(user){me=user;const {data,error}=await db.from('app_users').select('id,display_name,role,active,directory_access,category_report_access,staff_portal').eq('id',user.id).maybeSingle();if(error||!data?.active){await db.auth.signOut();setMessage('This account is not authorized. Contact the admin.',true);return}if(data.role!=='admin'&&(data.role!=='staff'||data.staff_portal!=='mdp')){await db.auth.signOut();setMessage('This account does not have MDP team member access. Contact the administrator.',true);return}profile=data;$('mobileNav').classList.remove('hide');$('login').classList.add('hide');$('app').classList.remove('hide');$('logout').classList.remove('hide');$('who').textContent=data.display_name;$('role').textContent=data.role==='admin'?'Administrator':'Team member';$('adminTab').classList.toggle('hide',data.role!=='admin');$('usersTab').classList.toggle('hide',data.role!=='admin');$('staffFilter').classList.toggle('hide',data.role!=='admin');await load()}
+async function signInUser(user){
+  if(!user?.id){authMessage('No authenticated account found. Please sign in again.');return}
+  let data,error;
+  try{({data,error}=await db.from('app_users').select('id,display_name,role,active,directory_access,category_report_access,staff_portal').eq('id',user.id).maybeSingle())}
+  catch(e){authMessage('Could not verify account permissions: '+(e?.message||e)+'. Your session was retained.');return}
+  if(error){authMessage('Account permission lookup failed: '+error.message+'. Your session was retained.');return}
+  if(!data){authMessage('No team member profile is linked to this login. Contact the administrator.');return}
+  if(!data.active){authMessage('This account is disabled. Contact the administrator.');return}
+  if(data.role!=='admin'&&(data.role!=='staff'||data.staff_portal!=='mdp')){
+    authMessage('This account does not have MDP team member access. Contact the administrator.');return
+  }
+  me=user;profile=data;
+  $('mobileNav').classList.remove('hide');$('login').classList.add('hide');$('app').classList.remove('hide');$('logout').classList.remove('hide');
+  $('who').textContent=data.display_name;$('role').textContent=data.role==='admin'?'Administrator':'Team member';
+  $('adminTab').classList.toggle('hide',data.role!=='admin');$('usersTab').classList.toggle('hide',data.role!=='admin');
+  $('staffFilter').classList.toggle('hide',data.role!=='admin');
+  try{await load()}catch(e){authMessage('Signed in, but records failed to load: '+(e?.message||e))}
+}
 async function load(){setMessage('Loading records…');let [{data:p,error:pe},{data:a,error:ae},{data:r,error:re},{data:s,error:se}]=await Promise.all([db.from('residents').select('id,serial,name,house,gender,age,national_id,mobile,photo_url').order('name').limit(5000),db.from('resident_assignments').select('resident_id,user_id').limit(5000),db.from('work_results').select('resident_id,user_id,vote_target,voted,remarks,updated_at').limit(10000),db.from('app_users').select('id,display_name,username,role,active,directory_access,category_report_access,staff_portal').limit(100)]);if(pe||ae||re||se){setMessage([pe,ae,re,se].filter(Boolean).map(x=>x.message).join('; '),true);return}people=p||[];assignments=a||[];results=r||[];const reportQuery=await db.rpc('get_neutral_category_reports');if(reportQuery.error){categoryReports=[];setMessage('Category reports unavailable: '+reportQuery.error.message,true)}else categoryReports=reportQuery.data||[];if(profile.role==='admin'||profile.directory_access){const pages=await Promise.all([0,1,2,3].map(i=>db.from('neutral_resident_directory').select('source_id,name,house,gender,age,photo_url,mobile,national_id').order('source_id').range(i*1000,i*1000+999)));const failure=pages.find(x=>x.error);if(failure){directoryError=failure.error.message;directory=[]}else{directoryError='';directory=pages.flatMap(x=>x.data||[]).map(x=>({...x,id:'directory-'+x.source_id}));}if(profile.role==='admin'){const grantRows=await Promise.all([0,1,2,3].map(i=>db.from('neutral_directory_staff_grants').select('user_id,source_id').order('source_id').range(i*1000,i*1000+999)));const failureGrant=grantRows.find(x=>x.error);directoryGrants=failureGrant?[]:grantRows.flatMap(x=>x.data||[]);}else directoryGrants=[];const outreach=await Promise.all([0,1,2,3].map(i=>db.from('neutral_staff_followups').select('source_id,user_id,status,last_contacted,updated_at').order('source_id').range(i*1000,i*1000+999)));const failed=outreach.find(x=>x.error);if(failed){setMessage('Follow-up statuses unavailable: '+failed.error.message,true);outreachRows=[]}else outreachRows=outreach.flatMap(x=>x.data||[]); }else{directory=[];outreachRows=[];directoryError='';}allStaff=(s||[]).filter(x=>x.role==='staff');staff=allStaff.filter(x=>x.active);if(profile.role==='admin')renderStaffManager();const sf=$('staffFilter'),current=sf.value;sf.replaceChildren(new Option('All staff',''));staff.forEach(x=>sf.add(new Option(x.display_name,x.id)));sf.value=current;setMessage(directoryError?'Unable to load neutral directory: '+directoryError:people.length>=5000?'Showing first 5,000 workflow records.':'',Boolean(directoryError));render()}
 function renderStatusSummary(){const counts={pending:0,contacted:0,follow_up:0,completed:0};const indexed=new Map(outreachRows.filter(r=>r.user_id===me?.id).map(r=>[r.source_id,r.status]));for(const p of directory){const s=indexed.get(p.source_id)||'pending';if(s in counts)counts[s]++}for(const [key,n] of Object.entries(counts))$('outreach-'+key).textContent=n}function navigateTo(next){if(next==='mywork'){tab='residents';myUpdatesOnly=true}else{tab=next;myUpdatesOnly=false}pageLimit=40;render();window.scrollTo(0,0)}
 function updateHome(){if(!profile)return;const admin=profile.role==='admin';$('homeOrganization').textContent=admin?'VILLIMALÉ ADMIN':(profile.staff_portal||'staff').toUpperCase()+' VILLIMALÉ';$('homeStaffName').textContent=profile.display_name||'Team member';$('homePortal').textContent=admin?'Administrator':'Authorized MDP team member';$('profileName').textContent=profile.display_name||'Team member';$('profileAccess').textContent=(admin?'Administrator':'MDP team member')+' · '+(admin||profile.directory_access?'Directory permitted':'Directory restricted');const mine=new Map(outreachRows.filter(r=>r.user_id===me?.id).map(r=>[r.source_id,r.status]));$('homeAssigned').textContent=directory.length;$('homeContacted').textContent=directory.filter(r=>mine.get(r.source_id)==='contacted').length;$('homePending').textContent=directory.filter(r=>!mine.has(r.source_id)||mine.get(r.source_id)==='pending').length;document.querySelectorAll('[data-admin-only]').forEach(el=>el.classList.toggle('hide',!admin))}
