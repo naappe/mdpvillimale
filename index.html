@@ -200,6 +200,45 @@ button{font-weight:550!important}
  .stat b{font-size:20px!important}
  .mobile-nav button{font-size:10px!important}
 }
+</style><style id="mdp-vote-shared-workspace-2026">
+/* Align the standalone workspace with Vote's restrained canary/navy operations layout. */
+:root{color-scheme:light!important;background:#f8fafc!important;color:#18345d!important}
+body{background:#f8fafc!important;color:#18345d!important;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif!important}
+header{background:#fff!important;color:#18345d!important;border-bottom:1px solid #e5eaf2!important;box-shadow:none!important}
+header h1{color:#18345d!important;font-size:17px!important}
+header .muted{color:#7585a1!important}
+main{max-width:1320px!important}
+.panel,.staff-card,.resident-card,.stat,.staff-card,.member-card{background:#fff!important;color:#18345d!important;border:1px solid #e4eaf2!important;box-shadow:none!important;border-radius:14px!important}
+.panel strong,.resident-card strong,.stat b{color:#18345d!important}
+.muted,.resident-meta,.resident-identifiers{color:#70809a!important}
+button{background:#285fe9!important;border-color:#285fe9!important;color:#fff!important;border-radius:10px!important;box-shadow:none!important;font-weight:600!important}
+button.light,.category-buttons button,.quick-action,.resident-detail{background:#fff!important;color:#244c89!important;border:1px solid #dce5f2!important}
+button.active,.category-buttons button.active{background:#fff5d9!important;color:#18345d!important;border-color:#f0d58a!important}
+input,select,textarea{background:#fff!important;color:#18345d!important;border:1px solid #dce5f2!important;border-radius:10px!important;box-shadow:none!important}
+input:focus,select:focus,textarea:focus{outline:2px solid #f1d780!important;outline-offset:1px}
+.stat{background:#fff!important}.stat b{font-size:25px!important}
+#tabs{background:transparent!important;box-shadow:none!important}
+#tabs button{font-size:13px!important}
+#mobileNav{background:#fff!important;border:1px solid #e6ebf3!important;box-shadow:0 5px 24px #1c34521c!important}
+#mobileNav button{background:transparent!important;border:0!important;color:#536989!important}
+#mobileNav button.active{background:#fff4d8!important;color:#18345d!important}
+#mobileHome,.home-screen{color:#18345d!important}
+.member-card{background:linear-gradient(110deg,#fff9e8,#fff)!important}
+.house-heading,.house-badge,.pill{background:#f2f6fd!important;color:#244c89!important}
+.notice{background:#fff9e8!important;color:#18345d!important;border-color:#f0dba5!important}
+#app:not(.hide) #mobileHome.hide{display:none!important}
+@media(min-width:900px){
+ body:has(#app:not(.hide)) header{position:fixed;left:0;top:0;bottom:0;width:205px;z-index:10;padding:22px 14px!important;border-right:1px solid #e4eaf2!important;border-bottom:0!important}
+ body:has(#app:not(.hide)) main{margin-left:205px!important;max-width:none!important;padding:26px 30px!important}
+ body:has(#app:not(.hide)) #mobileNav{position:fixed!important;left:12px!important;top:150px!important;bottom:auto!important;transform:none!important;width:180px!important;display:flex!important;flex-direction:column!important;border:0!important;box-shadow:none!important;padding:0!important;gap:7px!important}
+ body:has(#app:not(.hide)) #mobileNav button{width:100%!important;min-height:40px!important;flex-direction:row!important;justify-content:flex-start!important;gap:12px!important;padding:8px 12px!important;font-size:13px!important;border-radius:10px!important}
+ body:has(#app:not(.hide)) #mobileNav button span{font-size:19px!important}
+}
+@media(max-width:899px){
+ body:has(#app:not(.hide)) main{padding:12px 12px 95px!important}
+ #mobileNav{position:fixed!important;left:0!important;right:0!important;bottom:0!important;top:auto!important;transform:none!important;width:100%!important;border-radius:16px 16px 0 0!important;display:flex!important;justify-content:space-around!important;padding:8px 6px max(8px,env(safe-area-inset-bottom))!important}
+ #mobileNav button{flex:1!important;min-width:0!important;font-size:11px!important;padding:7px 2px!important}
+}
 </style></head><body>
 <header><div class="flex between"><div><h1>MDP Villimalé</h1><div class="muted" style="font-size:12px;color:#a7f3d0">Secure field operations</div></div><button id="logout" class="light hide">Sign out</button></div></header>
 <main>
@@ -215,14 +254,14 @@ button{font-weight:550!important}
 <div id="demographicPanel" class="panel"><div class="muted" style="margin-bottom:9px">Aggregate resident categories · Available to all active team members</div><div id="categoryButtons" class="category-buttons"><button type="button" data-category="all" title="All Residents" aria-label="All Residents">RS <span id="catAll">0</span></button><button type="button" data-category="youth" title="Youth under 35" aria-label="Youth under 35">Y <span id="catYouth">0</span></button><button type="button" data-category="youngwomen" title="Youth Female under 35" aria-label="Youth Female under 35">YF <span id="catYoungWomen">0</span></button><button type="button" data-category="women" title="All Females" aria-label="All Females">W <span id="catWomen">0</span></button><button type="button" data-category="men" title="All Males" aria-label="All Males">M <span id="catMen">0</span></button></div><div class="muted" id="categoryHelp" style="margin-top:8px"></div></div><div class="panel flex"><input class="grow" id="search" placeholder="Search name, house, serial or ID"><select id="staffFilter" class="hide"><option value="">All staff</option></select><button id="reload" class="light">Refresh</button></div>
 <div id="adminPanel" class="panel hide"><h3>User management</h3><p class="muted">Create up to 5 team member accounts directly here. Each person signs in using a username and password; no email address is needed. Their saved updates are stored under their own user ID.</p><form id="createStaffForm" class="flex"><input id="staffUsername" type="text" autocomplete="off" placeholder="Username (e.g. naufa)" minlength="3" maxlength="24" pattern="[A-Za-z][A-Za-z0-9._-]{2,23}" required class="grow"><input id="staffName" placeholder="Display name" required><input id="staffPassword" type="password" autocomplete="new-password" minlength="6" placeholder="Temporary password (6+ characters)" required class="grow"><button id="addStaff" type="submit">Create team member account</button></form><p class="muted">Share temporary passwords privately and ask team members to change them. Passwords are stored only in Supabase Authentication, never in the voter records.</p><div id="staffList" class="staff-list"></div></div><div id="assignmentPanel" class="panel hide"><h3>Resident assignments</h3><p class="muted">Select an authorized staff member on each resident card to assign or unassign access. User accounts are managed separately on the Users page.</p><div class="muted" id="assignmentSummary"></div></div>
 <div id="message" role="status"></div><div id="outreachSummary" class="panel"><div class="muted" style="margin-bottom:8px">My NGO follow-up statuses · Not split by demographics</div><div class="outreach-stats"><div><strong id="outreach-pending">0</strong><span>Pending</span></div><div><strong id="outreach-contacted">0</strong><span>Contacted</span></div><div><strong id="outreach-follow_up">0</strong><span>Follow-up Required</span></div><div><strong id="outreach-completed">0</strong><span>Completed</span></div></div></div><div id="residentTools" class="panel"><div class="flex between"><div><strong>Nonpartisan resident directory</strong><div class="muted" id="residentMatches">0 matching residents</div></div><div class="flex"><button type="button" id="viewMyUpdates" class="light">My Updates</button><button type="button" id="viewCards" class="light">Cards</button><button type="button" id="viewHouses" class="light">Houses</button></div></div></div><div id="noMatches" class="panel hide" role="status"><strong>No matching residents</strong><p class="muted">Try a different name or house, or select RS to show all available records.</p><button type="button" class="light" id="clearDirectorySearch">Clear filters</button></div><div id="emptyResidents" class="panel hide" role="status"><strong>No residents available</strong><p class="muted">The neutral resident directory is empty. Use the private CSV import in Supabase; this page does not connect records to Vote Target or staff assignments.</p></div><div class="list" id="cards"></div><div id="pagination" class="panel hide"><div class="flex between"><span class="muted" id="paginationLabel"></span><button type="button" id="moreResidents" class="light">Load more</button></div></div>
-</section><nav id="mobileNav" class="mobile-nav hide" aria-label="Main navigation"><button data-go="home" class="active"><span aria-hidden="true">⌂</span>Home</button><button data-go="target"><span aria-hidden="true">◎</span>Vote Target</button><button data-go="day"><span aria-hidden="true">▣</span>Voting Day</button><button data-go="reports"><span aria-hidden="true">▥</span>Reports</button><button data-go="profile"><span aria-hidden="true">♙</span>Profile</button></nav></main>
+</section><nav id="mobileNav" class="mobile-nav hide" aria-label="Main navigation"><button data-go="target" class="active"><span aria-hidden="true">⌂</span>Home</button><button data-go="residents"><span aria-hidden="true">◎</span>Residents</button><button data-go="day"><span aria-hidden="true">▣</span>Voting Day</button><button data-go="reports"><span aria-hidden="true">▥</span>Reports</button><button data-go="profile"><span aria-hidden="true">♙</span>Profile</button></nav></main>
 <script type="module">
 import {createClient} from 'https://esm.sh/@supabase/supabase-js@2.49.10';
 const PROJECT_URL='https://nvirihwxdfyrnxjepjej.supabase.co';
 const PUBLISHABLE_KEY='sb_publishable_uUMsU1KteyW8UE65HTrdZA_rrFIofap';
 const connected=/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(PROJECT_URL)&&!PUBLISHABLE_KEY.startsWith('REPLACE_');
 const $=id=>document.getElementById(id);const portal='mdp';const validPortal=true;
-let db=null,me=null,profile=null,accessCheckBusy=false,people=[],directory=[],outreachRows=[],directoryGrants=[],categoryReports=[],staff=[],allStaff=[],assignments=[],results=[],tab='home',query='',category='all',residentView='cards',pageLimit=40,myUpdatesOnly=false,searchTimer=null,directoryError='',selectedResidents=new Set();
+let db=null,me=null,profile=null,accessCheckBusy=false,people=[],directory=[],outreachRows=[],directoryGrants=[],categoryReports=[],staff=[],allStaff=[],assignments=[],results=[],tab='target',query='',category='all',residentView='cards',pageLimit=40,myUpdatesOnly=false,searchTimer=null,directoryError='',selectedResidents=new Set();
 const setMessage=(message,error=false)=>{const el=$('message');el.textContent=message;el.className=error?'error':'muted'};
 if(!connected){$('setup').classList.remove('hide');$('loginForm').querySelector('button').disabled=true}else{db=createClient(PROJECT_URL,PUBLISHABLE_KEY,{auth:{persistSession:true,autoRefreshToken:true}});init()}
 function safe(v){return String(v??'')}
